@@ -446,7 +446,7 @@ const Dashboard = () => {
       case 'applications':
         return <StudentApplicationsSection appliedJobs={appliedJobs} />;
       case 'certificates':
-        return <CertificatesSection uploadedDocuments={uploadedDocuments} />;
+        return <CertificatesSection />;
       case 'mock-tests':
         return <MockTestsSection />;
       case 'subscription':
@@ -466,7 +466,7 @@ const Dashboard = () => {
       case 'shopkeeper-management':
         return <AdminShopkeeperManagement />;
       case 'certificate-verification':
-        return <AdminCertificateVerification uploadedDocuments={uploadedDocuments} />;
+        return <AdminCertificateVerification />;
       case 'subscription-plans':
         return <AdminSubscriptionPlans />;
       case 'payment':

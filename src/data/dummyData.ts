@@ -1,115 +1,22 @@
-// Dummy data for the JobConnect application
+// Re-export from the new data manager for compatibility
+export { 
+  DataManager,
+  localStorageUtils, 
+  STORAGE_KEYS,
+  type Certificate,
+  type Job,
+  type MockTest,
+  type UserSubscription,
+  type AdminPlan
+} from './dataManager';
+
 import { User } from '@/contexts/AuthContext';
 import { SubscriptionPlan } from '@/contexts/SubscriptionPlansContext';
+import { DataManager } from './dataManager';
 
-export const dummyUsers: User[] = [
-  {
-    id: '1',
-    email: 'student@jobconnect.com',
-    name: 'Rahul Kumar',
-    userType: 'student',
-    subscriptionTier: 'Premium',
-    profilePhoto: '',
-    profile: {
-      phone: '+91 9876543210',
-      location: 'Mumbai, Maharashtra',
-      bio: 'Engineering student seeking government job opportunities',
-      skills: ['Computer Skills', 'Communication'],
-      experience: '1 year',
-      company: '',
-      department: ''
-    }
-  },
-  {
-    id: '2',
-    email: 'shopowner@jobconnect.com',
-    name: 'Main Shop Owner',
-    userType: 'employer',
-    subscriptionTier: 'Basic',
-    profilePhoto: '',
-    profile: {
-      phone: '+91 9876543211',
-      location: 'Delhi, India',
-      bio: 'Government job portal shop owner',
-      skills: [],
-      experience: '5 years',
-      company: 'Government Job Portal Shop',
-      department: 'Job Services'
-    }
-  },
-  {
-    id: '3',
-    email: 'admin@jobconnect.com',
-    name: 'Demo Administrator',
-    userType: 'administrator',
-    subscriptionTier: 'Pro',
-    profilePhoto: '',
-    profile: {
-      phone: '+91 9876543212',
-      location: 'New Delhi, India',
-      bio: 'System administrator',
-      skills: ['Administration', 'Management'],
-      experience: '10 years',
-      company: 'JobConnect Admin',
-      department: 'Administration'
-    }
-  }
-];
-
-export const dummySubscriptionPlans: SubscriptionPlan[] = [
-  {
-    id: 'basic',
-    name: 'Basic',
-    price: '₹0',
-    period: '',
-    iconColor: 'text-gray-500',
-    bgColor: 'bg-gray-50',
-    borderColor: 'border-gray-200',
-    features: [
-      '5 Mock Tests',
-      'Basic job search',
-      'Certificate upload',
-      'Email notifications'
-    ],
-    isPopular: false
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: '₹299',
-    period: '/month',
-    iconColor: 'text-blue-500',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200',
-    features: [
-      '50 Mock Tests',
-      'Priority job applications',
-      'Direct shopkeeper contact',
-      '24/7 chat support',
-      'Resume optimization',
-      'Advanced mock tests'
-    ],
-    isPopular: true
-  },
-  {
-    id: 'enterprise',
-    name: 'Enterprise',
-    price: '₹999',
-    period: '/month',
-    iconColor: 'text-purple-500',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200',
-    features: [
-      'All Premium features',
-      'Unlimited applications',
-      'Personal career advisor',
-      'Interview preparation',
-      'Unlimited mock tests',
-      'Priority support'
-    ],
-    isPopular: false
-  }
-];
+// Legacy compatibility - these will be loaded from localStorage via DataManager
+export const dummyUsers: User[] = DataManager.getUsers();
+export const dummySubscriptionPlans: SubscriptionPlan[] = DataManager.getSubscriptionPlans();
 
 export const dummyJobs = [
   {
@@ -200,52 +107,3 @@ export const dummyMockTests = [
     ]
   }
 ];
-
-// Local storage keys
-export const STORAGE_KEYS = {
-  USERS: 'jobconnect_registered_users',
-  SUBSCRIPTION_PLANS: 'jobconnect_subscription_plans',
-  CERTIFICATES: 'jobconnect_certificates',
-  USER_SUBSCRIPTIONS: 'jobconnect_user_subscriptions',
-  APPLIED_JOBS: 'jobconnect_applied_jobs',
-  MOCK_TEST_RESULTS: 'jobconnect_mock_test_results'
-} as const;
-
-// Local storage utility functions
-export const localStorageUtils = {
-  // Generic get function
-  get: <T>(key: string, defaultValue: T): T => {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : defaultValue;
-    } catch (error) {
-      console.error(`Error reading from localStorage key "${key}":`, error);
-      return defaultValue;
-    }
-  },
-
-  // Generic set function
-  set: <T>(key: string, value: T): void => {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      console.error(`Error saving to localStorage key "${key}":`, error);
-    }
-  },
-
-  // Remove function
-  remove: (key: string): void => {
-    try {
-      localStorage.removeItem(key);
-    } catch (error) {
-      console.error(`Error removing localStorage key "${key}":`, error);
-    }
-  },
-
-  // Clear all JobConnect data
-  clearAll: (): void => {
-    Object.values(STORAGE_KEYS).forEach(key => {
-      localStorageUtils.remove(key);
-    });
-  }
-};

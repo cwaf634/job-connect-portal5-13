@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Upload, FileText, Eye, Download, Trash2, Plus, X } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,22 +6,17 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useNotifications } from '@/contexts/NotificationContext';
-import { useCertificates } from '@/contexts/CertificateContext';
+import { DataManager, Certificate } from '@/data/dataManager';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface CertificatesSectionProps {
-  uploadedDocuments?: any[];
-}
-
-const CertificatesSection = ({ uploadedDocuments = [] }: CertificatesSectionProps) => {
-  const { certificates, addCertificate, deleteCertificate, getUserCertificates } = useCertificates();
+const CertificatesSection = () => {
   const { user } = useAuth();
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [isViewOpen, setIsViewOpen] = useState(false);
-  const [selectedCertificate, setSelectedCertificate] = useState(null);
+  const [selectedCertificate, setSelectedCertificate] = useState<Certificate | null>(null);
   const [formData, setFormData] = useState({
     certificateName: '',
     description: '',
@@ -30,8 +25,13 @@ const CertificatesSection = ({ uploadedDocuments = [] }: CertificatesSectionProp
   const { toast } = useToast();
   const { addNotification } = useNotifications();
 
-  // Get certificates for current user
-  const userCertificates = user ? getUserCertificates(user.id) : [];
+  // Load user's certificates
+  useEffect(() => {
+    if (user) {
+      const userCertificates = DataManager.getCertificatesByUser(user.id);
+      setCertificates(userCertificates);
+    }
+  }, [user]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -56,16 +56,17 @@ const CertificatesSection = ({ uploadedDocuments = [] }: CertificatesSectionProp
       return;
     }
 
-    const newCertificate = {
+    const newCertificate = DataManager.addCertificate({
+      userId: user.id,
       certificateName: formData.certificateName,
       description: formData.description || '',
       issueDate: new Date().toISOString().split('T')[0],
       certificateFile: formData.file.name,
-      userId: user.id,
-      status: 'pending' as const
-    };
+      status: 'pending'
+    });
 
-    addCertificate(newCertificate);
+    // Update local state
+    setCertificates(prev => [newCertificate, ...prev]);
     setIsUploadOpen(false);
     
     // Reset form
@@ -89,12 +90,12 @@ const CertificatesSection = ({ uploadedDocuments = [] }: CertificatesSectionProp
     });
   };
 
-  const handleView = (cert: any) => {
+  const handleView = (cert: Certificate) => {
     setSelectedCertificate(cert);
     setIsViewOpen(true);
   };
 
-  const handleDownload = (cert: any) => {
+  const handleDownload = (cert: Certificate) => {
     // Create a mock download
     const link = document.createElement('a');
     link.href = '#';
@@ -109,21 +110,28 @@ const CertificatesSection = ({ uploadedDocuments = [] }: CertificatesSectionProp
     });
   };
 
-  const handleDelete = (certId: number) => {
-    const certToDelete = userCertificates.find(cert => cert.id === certId);
-    deleteCertificate(certId);
+  const handleDelete = (certId: string) => {
+    const certToDelete = certificates.find(cert => cert.id === certId);
     
-    addNotification({
-      type: 'info',
-      title: "Certificate Deleted",
-      message: `${certToDelete?.certificateName} has been removed from your profile.`,
-      panel: 'student'
-    });
+    // Delete from data manager
+    const deleted = DataManager.deleteCertificate(certId);
     
-    toast({
-      title: "Certificate Deleted",
-      description: "Certificate has been removed successfully.",
-    });
+    if (deleted) {
+      // Update local state
+      setCertificates(prev => prev.filter(cert => cert.id !== certId));
+      
+      addNotification({
+        type: 'info',
+        title: "Certificate Deleted",
+        message: `${certToDelete?.certificateName} has been removed from your profile.`,
+        panel: 'student'
+      });
+      
+      toast({
+        title: "Certificate Deleted",
+        description: "Certificate has been removed successfully.",
+      });
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -162,23 +170,23 @@ const CertificatesSection = ({ uploadedDocuments = [] }: CertificatesSectionProp
       </div>
 
       {/* Status Summary */}
-      {userCertificates.length > 0 && (
+      {certificates.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="p-4 text-center bg-green-50 border-green-200">
             <div className="text-2xl font-bold text-green-600">
-              {userCertificates.filter(cert => cert.status === 'verified').length}
+              {certificates.filter(cert => cert.status === 'verified').length}
             </div>
             <div className="text-sm text-green-700">Verified</div>
           </Card>
           <Card className="p-4 text-center bg-yellow-50 border-yellow-200">
             <div className="text-2xl font-bold text-yellow-600">
-              {userCertificates.filter(cert => cert.status === 'pending').length}
+              {certificates.filter(cert => cert.status === 'pending').length}
             </div>
             <div className="text-sm text-yellow-700">Pending</div>
           </Card>
           <Card className="p-4 text-center bg-gray-50 border-gray-200">
             <div className="text-2xl font-bold text-gray-600">
-              {userCertificates.length}
+              {certificates.length}
             </div>
             <div className="text-sm text-gray-700">Total</div>
           </Card>
@@ -186,9 +194,9 @@ const CertificatesSection = ({ uploadedDocuments = [] }: CertificatesSectionProp
       )}
 
       {/* Certificates Grid */}
-      {userCertificates.length > 0 ? (
+      {certificates.length > 0 ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {userCertificates.map((cert) => (
+          {certificates.map((cert) => (
             <Card key={cert.id} className="hover:shadow-lg transition-all duration-300 border-2">
               <CardHeader className="pb-3">
                 <div className="flex justify-between items-start mb-3">
