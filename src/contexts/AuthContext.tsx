@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { dummyUsers, localStorageUtils, STORAGE_KEYS } from '@/data/dummyData';
+import { dummyUsers, localStorageUtils, STORAGE_KEYS, DataManager } from '@/data/dummyData';
 
 export interface User {
   id: string;
@@ -83,8 +83,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Check if user exists in registered users
-    const foundUser = registeredUsers.find(u => 
+    // Get fresh users from DataManager to ensure we have the latest data
+    const currentUsers = DataManager.getUsers();
+    
+    // Check if user exists in registered users with correct credentials
+    const foundUser = currentUsers.find(u => 
       u.email === email && u.userType === userType
     );
     
