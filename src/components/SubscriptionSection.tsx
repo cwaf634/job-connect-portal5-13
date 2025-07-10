@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,34 +7,60 @@ import { useSubscriptionPlans } from '@/contexts/SubscriptionPlansContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { Check, Star, Crown, Zap } from 'lucide-react';
-import { localStorageUtils, STORAGE_KEYS } from '@/data/dummyData';
+import { localStorageUtils, STORAGE_KEYS, DataManager } from '@/data/dummyData';
+import PaymentMethodModal from './PaymentMethodModal';
 
 const SubscriptionSection = () => {
   const { plans } = useSubscriptionPlans();
   const { user, updateProfile } = useAuth();
   const { toast } = useToast();
+  const [selectedPlan, setSelectedPlan] = useState(null);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
+  // Get plans from DataManager to ensure we have the latest admin-created plans
+  const adminPlans = DataManager.getSubscriptionPlans();
 
   const handleSubscribe = (planId: string) => {
-    const selectedPlan = plans.find(p => p.id === planId);
+    const plan = [...plans, ...adminPlans].find(p => p.id === planId);
+    if (!plan || !user) return;
+
+    if (plan.price === '₹0' || plan.price === '0' || (typeof plan.price === 'number' && plan.price === 0)) {
+      // Free plan - immediate activation
+      const userSubscriptions = localStorageUtils.get(STORAGE_KEYS.USER_SUBSCRIPTIONS, {});
+      userSubscriptions[user.id] = {
+        planId: plan.id,
+        planName: plan.name,
+        subscribedAt: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+      };
+      localStorageUtils.set(STORAGE_KEYS.USER_SUBSCRIPTIONS, userSubscriptions);
+      updateProfile({ subscriptionTier: plan.name });
+
+      toast({
+        title: "Subscription Successful!",
+        description: `You have successfully subscribed to ${plan.name} plan.`,
+      });
+    } else {
+      // Paid plan - show payment modal
+      setSelectedPlan(plan);
+      setIsPaymentModalOpen(true);
+    }
+  };
+
+  const handlePaymentSuccess = () => {
     if (!selectedPlan || !user) return;
 
-    // Save subscription to local storage
     const userSubscriptions = localStorageUtils.get(STORAGE_KEYS.USER_SUBSCRIPTIONS, {});
     userSubscriptions[user.id] = {
       planId: selectedPlan.id,
       planName: selectedPlan.name,
       subscribedAt: new Date().toISOString(),
-      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
     };
     localStorageUtils.set(STORAGE_KEYS.USER_SUBSCRIPTIONS, userSubscriptions);
-
-    // Update user's subscription tier
     updateProfile({ subscriptionTier: selectedPlan.name });
 
-    toast({
-      title: "Subscription Successful!",
-      description: `You have successfully subscribed to ${selectedPlan.name} plan.`,
-    });
+    setSelectedPlan(null);
   };
 
   const getIcon = (planName: string) => {
@@ -54,7 +80,7 @@ const SubscriptionSection = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {plans.map((plan) => (
+        {[...plans, ...adminPlans].map((plan) => (
           <Card 
             key={plan.id} 
             className={`relative hover:shadow-lg transition-all duration-300 border-2 ${

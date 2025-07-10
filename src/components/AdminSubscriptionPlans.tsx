@@ -9,9 +9,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CreditCard, Plus, Edit, Trash2, Star, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { DataManager } from '@/data/dummyData';
 
 const AdminSubscriptionPlans = () => {
-  const [plans, setPlans] = useState([
+  const [plans, setPlans] = useState(DataManager.getAdminPlans());
+  const [defaultPlans, setDefaultPlans] = useState([
     {
       id: 1,
       name: 'Free Plan',
@@ -81,7 +83,6 @@ const AdminSubscriptionPlans = () => {
     e.preventDefault();
     
     const newPlan = {
-      id: Date.now(),
       name: formData.name,
       price: parseInt(formData.price),
       duration: formData.duration,
@@ -92,16 +93,20 @@ const AdminSubscriptionPlans = () => {
       support: formData.support,
       color: formData.color,
       isPopular: formData.isPopular,
-      status: 'active'
+      status: 'active',
+      iconColor: 'text-gray-500',
+      bgColor: 'bg-gray-50',
+      borderColor: 'border-gray-200'
     };
 
-    setPlans(prev => [newPlan, ...prev]);
+    const createdPlan = DataManager.addAdminPlan(newPlan);
+    setPlans(prev => [createdPlan, ...prev]);
     setIsCreateOpen(false);
     resetForm();
     
     toast({
       title: "Plan Created",
-      description: `${formData.name} has been created successfully.`,
+      description: `${formData.name} has been created successfully and is now available for students.`,
     });
   };
 
@@ -125,23 +130,21 @@ const AdminSubscriptionPlans = () => {
   const handleUpdatePlan = (e: React.FormEvent) => {
     e.preventDefault();
     
-    setPlans(prev => prev.map(plan => 
-      plan.id === selectedPlan?.id 
-        ? {
-            ...plan,
-            name: formData.name,
-            price: parseInt(formData.price),
-            duration: formData.duration,
-            description: formData.description,
-            features: formData.features.split('\n').filter(f => f.trim()),
-            maxUsers: parseInt(formData.maxUsers),
-            storage: formData.storage,
-            support: formData.support,
-            color: formData.color,
-            isPopular: formData.isPopular
-          }
-        : plan
-    ));
+    const updatedData = {
+      name: formData.name,
+      price: parseInt(formData.price),
+      duration: formData.duration,
+      description: formData.description,
+      features: formData.features.split('\n').filter(f => f.trim()),
+      maxUsers: parseInt(formData.maxUsers),
+      storage: formData.storage,
+      support: formData.support,
+      color: formData.color,
+      isPopular: formData.isPopular
+    };
+
+    DataManager.updateAdminPlan(selectedPlan?.id, updatedData);
+    setPlans(DataManager.getAdminPlans());
     
     setIsEditOpen(false);
     setSelectedPlan(null);
@@ -149,13 +152,14 @@ const AdminSubscriptionPlans = () => {
     
     toast({
       title: "Plan Updated",
-      description: `${formData.name} has been updated successfully.`,
+      description: `${formData.name} has been updated successfully and changes are reflected in student panel.`,
     });
   };
 
-  const handleDeletePlan = (planId: number) => {
+  const handleDeletePlan = (planId: string) => {
     const planToDelete = plans.find(plan => plan.id === planId);
-    setPlans(prev => prev.filter(plan => plan.id !== planId));
+    DataManager.deleteAdminPlan(planId);
+    setPlans(DataManager.getAdminPlans());
     
     toast({
       title: "Plan Deleted",
@@ -256,7 +260,7 @@ const AdminSubscriptionPlans = () => {
 
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {plans.map((plan) => (
+        {[...defaultPlans, ...plans].map((plan) => (
           <Card key={plan.id} className={`relative border-2 ${getColorClasses(plan.color)} ${plan.isPopular ? 'ring-2 ring-yellow-400' : ''}`}>
             {plan.isPopular && (
               <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -306,7 +310,7 @@ const AdminSubscriptionPlans = () => {
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  onClick={() => handleDeletePlan(plan.id)}
+                  onClick={() => handleDeletePlan(plan.id.toString())}
                   className="text-red-600 border-red-300 hover:bg-red-50"
                 >
                   <Trash2 className="w-3 h-3" />

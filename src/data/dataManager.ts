@@ -214,6 +214,10 @@ export class DataManager {
     return localStorageUtils.get(STORAGE_KEYS.SUBSCRIPTION_PLANS, []);
   }
 
+  static addSubscriptionPlan = this.addAdminPlan;
+  static updateSubscriptionPlan = this.updateAdminPlan;
+  static deleteSubscriptionPlan = this.deleteAdminPlan;
+
   static getAdminPlans(): AdminPlan[] {
     return localStorageUtils.get(STORAGE_KEYS.ADMIN_PLANS, []);
   }
