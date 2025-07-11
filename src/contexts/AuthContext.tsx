@@ -24,9 +24,12 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  registeredUsers: User[];
   login: (email: string, password: string) => Promise<boolean>;
   register: (email: string, password: string, name: string, userType: User['userType']) => Promise<boolean>;
   logout: () => void;
+  addRegisteredUser: (user: User) => void;
+  updateProfile: (profileData: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,6 +49,13 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
+
+  // Load registered users on mount
+  useEffect(() => {
+    const users = DataManager.getUsers();
+    setRegisteredUsers(users);
+  }, []);
 
   // Check for existing auth on mount
   useEffect(() => {
@@ -123,6 +133,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       const createdUser = DataManager.addUser(newUser);
       setUser(createdUser);
+      setRegisteredUsers(prev => [...prev, createdUser]);
       localStorage.setItem('jobconnect_current_user', JSON.stringify(createdUser));
       
       return true;
@@ -134,6 +145,28 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const addRegisteredUser = (newUser: User) => {
+    const createdUser = DataManager.addUser(newUser);
+    setRegisteredUsers(prev => [...prev, createdUser]);
+  };
+
+  const updateProfile = (profileData: Partial<User>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...profileData };
+    if (profileData.profile) {
+      updatedUser.profile = { ...user.profile, ...profileData.profile };
+    }
+    
+    setUser(updatedUser);
+    localStorage.setItem('jobconnect_current_user', JSON.stringify(updatedUser));
+    
+    // Update in registered users list
+    setRegisteredUsers(prev => 
+      prev.map(u => u.id === user.id ? updatedUser : u)
+    );
+  };
+
   const logout = () => {
     setUser(null);
     localStorage.removeItem('jobconnect_current_user');
@@ -143,9 +176,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     isAuthenticated: !!user,
     isLoading,
+    registeredUsers,
     login,
     register,
-    logout
+    logout,
+    addRegisteredUser,
+    updateProfile
   };
 
   return (
