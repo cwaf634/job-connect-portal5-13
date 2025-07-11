@@ -32,8 +32,10 @@ const AdminUserManagement = () => {
   const handleCreateUser = (e: React.FormEvent) => {
     e.preventDefault();
     
+    const userId = Date.now().toString();
     const newUser: User = {
-      id: Date.now().toString(),
+      id: userId,
+      _id: userId,
       name: formData.name,
       email: formData.email,
       userType: formData.userType,
