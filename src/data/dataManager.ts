@@ -404,6 +404,7 @@ export class DataManager {
     if (users.length === 0) {
       const defaultUsers: Omit<User, 'id'>[] = [
         {
+          _id: 'student_demo_001',
           email: 'student@jobconnect.com',
           name: 'Rahul Kumar',
           userType: 'student',
@@ -420,6 +421,7 @@ export class DataManager {
           }
         },
         {
+          _id: 'employer_demo_001',
           email: 'shopowner@jobconnect.com',
           name: 'Main Shop Owner',
           userType: 'employer',
@@ -436,6 +438,7 @@ export class DataManager {
           }
         },
         {
+          _id: 'admin_demo_001',
           email: 'admin@jobconnect.com',
           name: 'Demo Administrator',
           userType: 'administrator',

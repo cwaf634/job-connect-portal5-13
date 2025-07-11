@@ -19,7 +19,7 @@ const UserPanels = ({ onLoginClick, onRegisterClick, activePanel }: UserPanelsPr
       title: t('students'),
       description: t('studentsDesc'),
       icon: Users,
-      color: 'bg-blue-500',
+      color: 'blue' as const,
       buttonColor: 'bg-blue-500 hover:bg-blue-600'
     },
     {
@@ -27,7 +27,7 @@ const UserPanels = ({ onLoginClick, onRegisterClick, activePanel }: UserPanelsPr
       title: t('employers'),
       description: t('employersDesc'),
       icon: Building2,
-      color: 'bg-green-500',
+      color: 'green' as const,
       buttonColor: 'bg-green-500 hover:bg-green-600'
     },
     {
@@ -35,7 +35,7 @@ const UserPanels = ({ onLoginClick, onRegisterClick, activePanel }: UserPanelsPr
       title: t('administrators'),
       description: t('administratorsDesc'),
       icon: Shield,
-      color: 'bg-purple-500',
+      color: 'purple' as const,
       buttonColor: 'bg-purple-500 hover:bg-purple-600'
     }
   ];

@@ -10,7 +10,7 @@ interface UserPanelProps {
   title: string;
   description: string;
   icon: LucideIcon;
-  color: string;
+  color: 'blue' | 'green' | 'purple';
   buttonColor: string;
   onLoginClick: (userType: 'student' | 'employer' | 'administrator') => void;
   onRegisterClick: (userType: 'student' | 'employer' | 'administrator') => void;
@@ -19,13 +19,19 @@ interface UserPanelProps {
 const UserPanel = ({ type, title, description, icon: IconComponent, color, buttonColor, onLoginClick, onRegisterClick }: UserPanelProps) => {
   const { t } = useLanguage();
 
+  const colorClasses = {
+    blue: 'bg-blue-500',
+    green: 'bg-green-500',
+    purple: 'bg-purple-500'
+  };
+
   return (
     <Card className="bg-white shadow-lg border-0 hover:shadow-2xl transition-all duration-500 hover:-translate-y-3 group animate-fade-in overflow-hidden relative">
       {/* Animated background gradient on hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-purple-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
       
       <CardHeader className="text-center pb-6 relative z-10">
-        <div className={`w-16 h-16 ${color} rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg group-hover:shadow-xl`}>
+        <div className={`w-16 h-16 ${colorClasses[color]} rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 shadow-lg group-hover:shadow-xl`}>
           <IconComponent className="w-8 h-8 text-white group-hover:scale-110 transition-transform duration-300" />
         </div>
         <CardTitle className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors duration-300">
