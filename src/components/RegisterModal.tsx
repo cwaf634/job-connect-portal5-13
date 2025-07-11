@@ -20,7 +20,12 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
     email: '',
     password: '',
     confirmPassword: '',
-    userType: defaultUserType || 'student' as 'student' | 'employer' | 'administrator'
+    phone: '',
+    userType: defaultUserType || 'student' as 'student' | 'employer' | 'administrator',
+    // Employer specific fields
+    companyName: '',
+    shopName: '',
+    location: ''
   });
   const { register, isLoading } = useAuth();
   const { toast } = useToast();
@@ -36,15 +41,58 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
       });
       return;
     }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Password Too Short",
+        description: "Password must be at least 6 characters long.",
+        variant: "destructive",
+      });
+      return;
+    }
     
     try {
-      const success = await register(formData.email, formData.password, formData.name, formData.userType);
+      // Prepare additional data based on user type
+      let additionalData = {};
+      
+      if (formData.userType === 'employer') {
+        additionalData = {
+          companyName: formData.companyName,
+          shopName: formData.shopName,
+          location: formData.location
+        };
+      }
+
+      if (formData.phone) {
+        additionalData = { ...additionalData, phone: formData.phone };
+      }
+
+      const success = await register(
+        formData.email, 
+        formData.password, 
+        formData.name, 
+        formData.userType,
+        additionalData
+      );
+      
       if (success) {
         toast({
           title: "Registration Successful",
           description: `Welcome to JobConnect! Setting up your ${formData.userType} dashboard.`,
         });
         onClose();
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          password: '',
+          confirmPassword: '',
+          phone: '',
+          userType: 'student',
+          companyName: '',
+          shopName: '',
+          location: ''
+        });
       } else {
         toast({
           title: "Registration Failed",
@@ -67,7 +115,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Register for JobConnect</DialogTitle>
         </DialogHeader>
@@ -85,7 +133,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="student">Student</SelectItem>
-                <SelectItem value="employer">Employer</SelectItem>
+                <SelectItem value="employer">Employer/Shop Owner</SelectItem>
                 <SelectItem value="administrator">Administrator</SelectItem>
               </SelectContent>
             </Select>
@@ -114,13 +162,62 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
               required
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone Number (Optional)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="Enter your phone number"
+              value={formData.phone}
+              onChange={(e) => handleInputChange('phone', e.target.value)}
+            />
+          </div>
+
+          {/* Employer specific fields */}
+          {formData.userType === 'employer' && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="companyName">Company Name</Label>
+                <Input
+                  id="companyName"
+                  type="text"
+                  placeholder="Enter your company name"
+                  value={formData.companyName}
+                  onChange={(e) => handleInputChange('companyName', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="shopName">Shop Name</Label>
+                <Input
+                  id="shopName"
+                  type="text"
+                  placeholder="Enter your shop name"
+                  value={formData.shopName}
+                  onChange={(e) => handleInputChange('shopName', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input
+                  id="location"
+                  type="text"
+                  placeholder="Enter your location"
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                />
+              </div>
+            </>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
             <Input
               id="password"
               type="password"
-              placeholder="Enter your password"
+              placeholder="Enter your password (min 6 characters)"
               value={formData.password}
               onChange={(e) => handleInputChange('password', e.target.value)}
               required

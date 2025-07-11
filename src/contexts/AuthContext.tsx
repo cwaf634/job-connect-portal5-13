@@ -1,12 +1,13 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { DataManager } from '@/data/dataManager';
 
 export interface User {
+  _id: string;
   id: string;
   email: string;
   name: string;
   userType: 'student' | 'employer' | 'administrator';
+  phone?: string;
   subscriptionTier?: string;
   profilePhoto?: string;
   profile?: {
@@ -18,6 +19,32 @@ export interface User {
     company?: string;
     department?: string;
   };
+  // Backend specific fields
+  studentDetails?: {
+    dateOfBirth?: Date;
+    address?: string;
+    education?: string;
+    experience?: string;
+    skills?: string[];
+    resume?: string;
+    certificates?: any[];
+    subscriptionPlan?: string;
+    subscriptionExpiry?: Date;
+    mockTestsCompleted?: number;
+  };
+  employerDetails?: {
+    companyName?: string;
+    companyAddress?: string;
+    companyPhone?: string;
+    shopName?: string;
+    location?: string;
+    businessLicense?: string;
+    verificationStatus?: string;
+  };
+  adminDetails?: {
+    permissions?: string[];
+    lastLogin?: Date;
+  };
 }
 
 interface AuthContextType {
@@ -26,10 +53,11 @@ interface AuthContextType {
   isLoading: boolean;
   registeredUsers: User[];
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string, userType: User['userType']) => Promise<boolean>;
+  register: (email: string, password: string, name: string, userType: User['userType'], additionalData?: any) => Promise<boolean>;
   logout: () => void;
   addRegisteredUser: (user: User) => void;
   updateProfile: (profileData: Partial<User>) => void;
+  token: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,55 +74,106 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const API_BASE_URL = 'http://localhost:5000/api';
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
-
-  // Load registered users on mount
-  useEffect(() => {
-    const users = DataManager.getUsers();
-    setRegisteredUsers(users);
-  }, []);
+  const [token, setToken] = useState<string | null>(null);
 
   // Check for existing auth on mount
   useEffect(() => {
+    const storedToken = localStorage.getItem('jobconnect_token');
     const storedUser = localStorage.getItem('jobconnect_current_user');
-    if (storedUser) {
+    
+    if (storedToken && storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        setToken(storedToken);
+        const parsedUser = JSON.parse(storedUser);
+        // Ensure id field is set from _id
+        if (parsedUser._id && !parsedUser.id) {
+          parsedUser.id = parsedUser._id;
+        }
+        setUser(parsedUser);
+        
+        // Verify token with backend
+        verifyToken(storedToken);
       } catch (error) {
         console.error('Error parsing stored user:', error);
+        localStorage.removeItem('jobconnect_token');
         localStorage.removeItem('jobconnect_current_user');
       }
     }
   }, []);
 
+  const verifyToken = async (token: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/me`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Token verification failed');
+      }
+
+      const data = await response.json();
+      const userData = data.user;
+      
+      // Ensure id field is set from _id
+      if (userData._id && !userData.id) {
+        userData.id = userData._id;
+      }
+      
+      setUser(userData);
+      localStorage.setItem('jobconnect_current_user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Token verification failed:', error);
+      logout();
+    }
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      const users = DataManager.getUsers();
-      const foundUser = users.find(u => u.email === email);
-      
-      if (foundUser) {
-        // In a real app, you'd verify the password here
-        // For demo purposes, we'll accept specific demo passwords
-        const validPasswords = {
-          'student@jobconnect.com': 'student123',
-          'shopowner@jobconnect.com': 'shop123',
-          'admin@jobconnect.com': 'admin123'
-        };
-        
-        const expectedPassword = validPasswords[email as keyof typeof validPasswords];
-        if (password === expectedPassword || password === 'demo123') {
-          setUser(foundUser);
-          localStorage.setItem('jobconnect_current_user', JSON.stringify(foundUser));
-          return true;
-        }
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Login failed:', data.message);
+        return false;
       }
+
+      const { token: authToken, user: userData } = data;
       
-      return false;
+      // Ensure id field is set from _id
+      if (userData._id && !userData.id) {
+        userData.id = userData._id;
+      }
+
+      // Map backend userType to frontend userType
+      if (userData.userType === 'admin') {
+        userData.userType = 'administrator';
+      }
+
+      setToken(authToken);
+      setUser(userData);
+      
+      localStorage.setItem('jobconnect_token', authToken);
+      localStorage.setItem('jobconnect_current_user', JSON.stringify(userData));
+      
+      return true;
     } catch (error) {
       console.error('Login error:', error);
       return false;
@@ -103,38 +182,59 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const register = async (email: string, password: string, name: string, userType: User['userType']): Promise<boolean> => {
+  const register = async (
+    email: string, 
+    password: string, 
+    name: string, 
+    userType: User['userType'],
+    additionalData?: any
+  ): Promise<boolean> => {
     setIsLoading(true);
     
     try {
-      const users = DataManager.getUsers();
-      const existingUser = users.find(u => u.email === email);
+      // Map frontend userType to backend userType
+      const backendUserType = userType === 'administrator' ? 'admin' : userType;
       
-      if (existingUser) {
-        return false; // User already exists
-      }
-      
-      const newUser: Omit<User, 'id'> = {
+      const requestBody = {
         email,
+        password,
         name,
-        userType,
-        subscriptionTier: 'Basic',
-        profilePhoto: '',
-        profile: {
-          phone: '',
-          location: '',
-          bio: '',
-          skills: [],
-          experience: '',
-          company: '',
-          department: ''
-        }
+        userType: backendUserType,
+        ...additionalData
       };
+
+      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Registration failed:', data.message);
+        return false;
+      }
+
+      const { token: authToken, user: userData } = data;
       
-      const createdUser = DataManager.addUser(newUser);
-      setUser(createdUser);
-      setRegisteredUsers(prev => [...prev, createdUser]);
-      localStorage.setItem('jobconnect_current_user', JSON.stringify(createdUser));
+      // Ensure id field is set from _id
+      if (userData._id && !userData.id) {
+        userData.id = userData._id;
+      }
+
+      // Map backend userType to frontend userType
+      if (userData.userType === 'admin') {
+        userData.userType = 'administrator';
+      }
+
+      setToken(authToken);
+      setUser(userData);
+      
+      localStorage.setItem('jobconnect_token', authToken);
+      localStorage.setItem('jobconnect_current_user', JSON.stringify(userData));
       
       return true;
     } catch (error) {
@@ -146,30 +246,61 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const addRegisteredUser = (newUser: User) => {
-    const createdUser = DataManager.addUser(newUser);
-    setRegisteredUsers(prev => [...prev, createdUser]);
+    setRegisteredUsers(prev => [...prev, newUser]);
   };
 
-  const updateProfile = (profileData: Partial<User>) => {
-    if (!user) return;
+  const updateProfile = async (profileData: Partial<User>) => {
+    if (!user || !token) return;
     
-    const updatedUser = { ...user, ...profileData };
-    if (profileData.profile) {
-      updatedUser.profile = { ...user.profile, ...profileData.profile };
+    try {
+      // Update locally first for immediate UI feedback
+      const updatedUser = { ...user, ...profileData };
+      if (profileData.profile) {
+        updatedUser.profile = { ...user.profile, ...profileData.profile };
+      }
+      
+      setUser(updatedUser);
+      localStorage.setItem('jobconnect_current_user', JSON.stringify(updatedUser));
+      
+      // Update in registered users list
+      setRegisteredUsers(prev => 
+        prev.map(u => u.id === user.id ? updatedUser : u)
+      );
+
+      // TODO: Implement backend profile update endpoint
+      // const response = await fetch(`${API_BASE_URL}/users/profile`, {
+      //   method: 'PUT',
+      //   headers: {
+      //     'Authorization': `Bearer ${token}`,
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify(profileData),
+      // });
+      
+    } catch (error) {
+      console.error('Profile update error:', error);
     }
-    
-    setUser(updatedUser);
-    localStorage.setItem('jobconnect_current_user', JSON.stringify(updatedUser));
-    
-    // Update in registered users list
-    setRegisteredUsers(prev => 
-      prev.map(u => u.id === user.id ? updatedUser : u)
-    );
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('jobconnect_current_user');
+  const logout = async () => {
+    try {
+      if (token) {
+        await fetch(`${API_BASE_URL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      setToken(null);
+      localStorage.removeItem('jobconnect_token');
+      localStorage.removeItem('jobconnect_current_user');
+    }
   };
 
   const value: AuthContextType = {
@@ -181,7 +312,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     register,
     logout,
     addRegisteredUser,
-    updateProfile
+    updateProfile,
+    token
   };
 
   return (
