@@ -10,13 +10,13 @@ import { User, Building2, Shield, Mail, Lock } from 'lucide-react';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultUserType?: 'student' | 'employer' | 'admin' | null;
+  defaultUserType?: 'student' | 'employer' | 'administrator' | null;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserType }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState<'student' | 'employer' | 'admin'>(
+  const [userType, setUserType] = useState<'student' | 'employer' | 'administrator'>(
     defaultUserType || 'student'
   );
   const { login, isLoading } = useAuth();
@@ -34,7 +34,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
       password: 'shop123',
       name: 'Demo Shop Owner'
     },
-    admin: {
+    administrator: {
       email: 'admin@jobconnect.com',
       password: 'admin123',
       name: 'Demo Administrator'
@@ -45,7 +45,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
     e.preventDefault();
     
     try {
-      const success = await login(email, password, userType);
+      const success = await login(email, password);
       if (success) {
         toast({
           title: "Login Successful",
@@ -55,7 +55,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
       } else {
         toast({
           title: "Login Failed",
-          description: "Please check your credentials and user type, then try again.",
+          description: "Please check your credentials and try again.",
           variant: "destructive",
         });
       }
@@ -68,7 +68,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
     }
   };
 
-  const handleDemoLogin = (type: 'student' | 'employer' | 'admin') => {
+  const handleDemoLogin = (type: 'student' | 'employer' | 'administrator') => {
     const credentials = demoCredentials[type];
     setEmail(credentials.email);
     setPassword(credentials.password);
@@ -79,7 +79,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
     switch (type) {
       case 'student': return <User className="w-4 h-4" />;
       case 'employer': return <Building2 className="w-4 h-4" />;
-      case 'admin': return <Shield className="w-4 h-4" />;
+      case 'administrator': return <Shield className="w-4 h-4" />;
       default: return <User className="w-4 h-4" />;
     }
   };
@@ -110,7 +110,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
               >
                 <div className="flex flex-col items-center space-y-1">
                   {getUserTypeIcon(type)}
-                  <span className="capitalize">{type === 'employer' ? 'Shop' : type === 'admin' ? 'Admin' : type}</span>
+                  <span className="capitalize">{type === 'employer' ? 'Shop' : type === 'administrator' ? 'Admin' : type}</span>
                 </div>
               </button>
             ))}

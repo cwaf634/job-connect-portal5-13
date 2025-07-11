@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultUserType?: 'student' | 'employer' | 'admin' | null;
+  defaultUserType?: 'student' | 'employer' | 'administrator' | null;
 }
 
 const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultUserType }) => {
@@ -20,7 +20,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
     email: '',
     password: '',
     confirmPassword: '',
-    userType: defaultUserType || 'student' as 'student' | 'employer' | 'admin'
+    userType: defaultUserType || 'student' as 'student' | 'employer' | 'administrator'
   });
   const { register, isLoading } = useAuth();
   const { toast } = useToast();
@@ -76,7 +76,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
             <Label htmlFor="userType">User Type</Label>
             <Select 
               value={formData.userType} 
-              onValueChange={(value: 'student' | 'employer' | 'admin') => 
+              onValueChange={(value: 'student' | 'employer' | 'administrator') => 
                 handleInputChange('userType', value)
               }
             >
@@ -86,7 +86,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
               <SelectContent>
                 <SelectItem value="student">Student</SelectItem>
                 <SelectItem value="employer">Employer</SelectItem>
-                <SelectItem value="admin">Administrator</SelectItem>
+                <SelectItem value="administrator">Administrator</SelectItem>
               </SelectContent>
             </Select>
           </div>

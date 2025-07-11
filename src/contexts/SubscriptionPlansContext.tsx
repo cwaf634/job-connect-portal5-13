@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { dummySubscriptionPlans, localStorageUtils, STORAGE_KEYS } from '@/data/dummyData';
+import { DataManager } from '@/data/dataManager';
 
 export interface SubscriptionPlan {
   id: string;
@@ -40,21 +40,9 @@ export const SubscriptionPlansProvider: React.FC<SubscriptionPlansProviderProps>
 
   // Load plans from localStorage on component mount
   useEffect(() => {
-    const storedPlans = localStorageUtils.get(STORAGE_KEYS.SUBSCRIPTION_PLANS, []);
-    if (storedPlans.length > 0) {
-      setPlans(storedPlans);
-    } else {
-      setPlans(dummySubscriptionPlans);
-    }
+    const storedPlans = DataManager.getSubscriptionPlans();
+    setPlans(storedPlans);
   }, []);
-
-  // Save to localStorage whenever plans change
-  useEffect(() => {
-    if (plans.length > 0) {
-      localStorageUtils.set(STORAGE_KEYS.SUBSCRIPTION_PLANS, plans);
-    }
-  }, [plans]);
-
 
   const addPlan = (plan: SubscriptionPlan) => {
     setPlans(prev => [...prev, plan]);
