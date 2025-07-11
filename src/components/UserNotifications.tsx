@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +13,7 @@ const UserNotifications = () => {
 
   // Get notifications specific to current user's panel
   const userType = user?.userType || 'student';
-  const userNotifications = getPanelNotifications(userType);
+  const userNotifications = getPanelNotifications(userType === 'administrator' ? 'administrator' : userType);
 
   const getIcon = (type: string) => {
     switch (type) {

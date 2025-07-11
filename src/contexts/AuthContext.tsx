@@ -1,32 +1,32 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { dummyUsers, localStorageUtils, STORAGE_KEYS, DataManager } from '@/data/dummyData';
+import { DataManager } from '@/data/dummyData';
 
 export interface User {
   id: string;
   email: string;
   name: string;
-  userType: 'student' | 'employer' | 'admin';
-  subscriptionTier?: string;
-  profilePhoto?: string;
-  profile?: {
-    phone?: string;
-    location?: string;
-    bio?: string;
-    skills?: string[];
-    experience?: string;
-    company?: string;
-    department?: string;
+  userType: 'student' | 'employer' | 'administrator';
+  subscriptionTier: string;
+  profilePhoto: string;
+  profile: {
+    phone: string;
+    location: string;
+    bio: string;
+    skills: string[];
+    experience: string;
+    company: string;
+    department: string;
   };
 }
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, userType: 'student' | 'employer' | 'admin') => Promise<boolean>;
-  register: (email: string, password: string, name: string, userType: 'student' | 'employer' | 'admin') => Promise<boolean>;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string, userType: 'student' | 'employer' | 'administrator') => Promise<boolean>;
   logout: () => void;
-  updateProfile: (profileData: Partial<User['profile']> & { subscriptionTier?: string; profilePhoto?: string; name?: string }) => void;
-  isLoading: boolean;
+  updateProfile: (profileData: Partial<User>) => void;
   registeredUsers: User[];
   addRegisteredUser: (user: User) => void;
 }
@@ -47,181 +47,159 @@ interface AuthProviderProps {
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [registeredUsers, setRegisteredUsers] = useState<User[]>([]);
 
-  // Load registered users from localStorage on component mount
   useEffect(() => {
-    const storedUsers = localStorageUtils.get(STORAGE_KEYS.USERS, []);
-    if (storedUsers.length > 0) {
-      setRegisteredUsers(storedUsers);
-    } else {
-      // Initialize with default users if no stored users
-      setRegisteredUsers(dummyUsers);
-      localStorageUtils.set(STORAGE_KEYS.USERS, dummyUsers);
+    // Load user from localStorage
+    const savedUser = localStorage.getItem('currentUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
     }
 
-    // Check for existing session
-    const savedUser = localStorageUtils.get(STORAGE_KEYS.CURRENT_USER, null);
-    if (savedUser) {
-      setUser(savedUser);
+    // Load registered users
+    const users = DataManager.getUsers();
+    setRegisteredUsers(users);
+
+    // Initialize default users if none exist
+    if (users.length === 0) {
+      const defaultUsers: User[] = [
+        {
+          id: '1',
+          email: 'student@jobconnect.com',
+          name: 'Rahul Kumar',
+          userType: 'student',
+          subscriptionTier: 'Premium',
+          profilePhoto: '',
+          profile: {
+            phone: '+91 9876543210',
+            location: 'Mumbai, Maharashtra',
+            bio: 'Engineering student seeking government job opportunities',
+            skills: ['Computer Skills', 'Communication'],
+            experience: '1 year',
+            company: '',
+            department: ''
+          }
+        },
+        {
+          id: '2',
+          email: 'shopowner@jobconnect.com',
+          name: 'Main Shop Owner',
+          userType: 'employer',
+          subscriptionTier: 'Basic',
+          profilePhoto: '',
+          profile: {
+            phone: '+91 9876543211',
+            location: 'Delhi, India',
+            bio: 'Government job portal shop owner',
+            skills: [],
+            experience: '5 years',
+            company: 'Government Job Portal Shop',
+            department: 'Job Services'
+          }
+        },
+        {
+          id: '3',
+          email: 'admin@jobconnect.com',
+          name: 'Demo Administrator',
+          userType: 'administrator',
+          subscriptionTier: 'Pro',
+          profilePhoto: '',
+          profile: {
+            phone: '+91 9876543212',
+            location: 'New Delhi, India',
+            bio: 'System administrator',
+            skills: ['Administration', 'Management'],
+            experience: '10 years',
+            company: 'JobConnect Admin',
+            department: 'Administration'
+          }
+        }
+      ];
+
+      defaultUsers.forEach(user => DataManager.addUser(user));
+      setRegisteredUsers(defaultUsers);
     }
   }, []);
 
-  // Save to localStorage whenever registeredUsers changes
-  useEffect(() => {
-    if (registeredUsers.length > 0) {
-      localStorageUtils.set(STORAGE_KEYS.USERS, registeredUsers);
-    }
-  }, [registeredUsers]);
-
-  const addRegisteredUser = (newUser: User) => {
-    setRegisteredUsers(prev => {
-      const updated = [newUser, ...prev];
-      localStorageUtils.set(STORAGE_KEYS.USERS, updated);
-      return updated;
-    });
-  };
-
-  const login = async (email: string, password: string, userType: 'student' | 'employer' | 'admin'): Promise<boolean> => {
-    setIsLoading(true);
+  const login = async (email: string, password: string): Promise<boolean> => {
+    // Get the latest users from DataManager
+    const users = DataManager.getUsers();
+    const foundUser = users.find(u => u.email === email);
     
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Get fresh users from DataManager and localStorage
-      const currentUsers = DataManager.getUsers();
-      const storedUsers = localStorageUtils.get(STORAGE_KEYS.USERS, []);
-      const allUsers = [...currentUsers, ...storedUsers];
-      
-      // Normalize userType for comparison (handle both 'employer' and 'admin' cases)
-      const normalizedUserType = userType === 'employer' ? 'employer' : userType;
-      
-      // Check if user exists with correct credentials and user type
-      const foundUser = allUsers.find(u => {
-        const userTypeMatch = u.userType === normalizedUserType || 
-                             (normalizedUserType === 'employer' && u.userType === 'employer') ||
-                             (normalizedUserType === 'admin' && (u.userType === 'admin' || u.userType === 'administrator'));
-        
-        return u.email === email && userTypeMatch;
-      });
-      
-      if (foundUser) {
-        // Normalize the user type for consistency
-        const normalizedUser = {
-          ...foundUser,
-          userType: foundUser.userType === 'administrator' ? 'admin' : foundUser.userType
-        } as User;
-        
-        setUser(normalizedUser);
-        localStorageUtils.set(STORAGE_KEYS.CURRENT_USER, normalizedUser);
-        setIsLoading(false);
-        return true;
-      }
-      
-      setIsLoading(false);
-      return false;
-    } catch (error) {
-      console.error('Login error:', error);
-      setIsLoading(false);
-      return false;
-    }
-  };
-
-  const register = async (email: string, password: string, name: string, userType: 'student' | 'employer' | 'admin'): Promise<boolean> => {
-    setIsLoading(true);
-    
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Check if user already exists
-      const currentUsers = DataManager.getUsers();
-      const storedUsers = localStorageUtils.get(STORAGE_KEYS.USERS, []);
-      const allUsers = [...currentUsers, ...storedUsers];
-      
-      const existingUser = allUsers.find(u => u.email === email);
-      if (existingUser) {
-        setIsLoading(false);
-        return false;
-      }
-      
-      // Create new user
-      const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email,
-        name,
-        userType: userType === 'admin' ? 'admin' : userType,
-        subscriptionTier: userType === 'student' ? 'Basic' : undefined,
-        profilePhoto: '',
-        profile: {
-          phone: '',
-          location: '',
-          bio: '',
-          skills: [],
-          experience: '',
-          company: userType === 'employer' ? '' : undefined,
-          department: ''
-        }
-      };
-      
-      addRegisteredUser(newUser);
-      setUser(newUser);
-      localStorageUtils.set(STORAGE_KEYS.CURRENT_USER, newUser);
-      setIsLoading(false);
+    if (foundUser && password === 'respective123') {
+      setUser(foundUser);
+      localStorage.setItem('currentUser', JSON.stringify(foundUser));
       return true;
-    } catch (error) {
-      console.error('Registration error:', error);
-      setIsLoading(false);
-      return false;
     }
+    return false;
+  };
+
+  const register = async (email: string, password: string, name: string, userType: 'student' | 'employer' | 'administrator'): Promise<boolean> => {
+    const users = DataManager.getUsers();
+    const existingUser = users.find(u => u.email === email);
+    
+    if (existingUser) {
+      return false; // User already exists
+    }
+
+    const newUser: User = {
+      id: Date.now().toString(),
+      email,
+      name,
+      userType,
+      subscriptionTier: 'Basic',
+      profilePhoto: '',
+      profile: {
+        phone: '',
+        location: '',
+        bio: '',
+        skills: [],
+        experience: '',
+        company: '',
+        department: ''
+      }
+    };
+
+    DataManager.addUser(newUser);
+    setRegisteredUsers(prev => [...prev, newUser]);
+    setUser(newUser);
+    localStorage.setItem('currentUser', JSON.stringify(newUser));
+    return true;
   };
 
   const logout = () => {
     setUser(null);
-    localStorageUtils.remove(STORAGE_KEYS.CURRENT_USER);
+    localStorage.removeItem('currentUser');
   };
 
-  const updateProfile = (profileData: Partial<User['profile']> & { subscriptionTier?: string; profilePhoto?: string; name?: string }) => {
+  const updateProfile = (profileData: Partial<User>) => {
     if (user) {
-      const { subscriptionTier, profilePhoto, name, ...profileOnly } = profileData;
-      const updatedUser = {
-        ...user,
-        ...(name && { name }),
-        ...(subscriptionTier && { subscriptionTier }),
-        ...(profilePhoto !== undefined && { profilePhoto }),
-        profile: {
-          ...user.profile,
-          ...profileOnly
-        }
-      };
+      const updatedUser = { ...user, ...profileData };
       setUser(updatedUser);
-      localStorageUtils.set(STORAGE_KEYS.CURRENT_USER, updatedUser);
+      localStorage.setItem('currentUser', JSON.stringify(updatedUser));
       
-      // Update in registered users as well
-      setRegisteredUsers(prev => {
-        const updated = prev.map(u => u.id === user.id ? updatedUser : u);
-        localStorageUtils.set(STORAGE_KEYS.USERS, updated);
-        return updated;
-      });
+      // Update in registeredUsers array
+      setRegisteredUsers(prev => 
+        prev.map(u => u.id === user.id ? updatedUser : u)
+      );
     }
+  };
+
+  const addRegisteredUser = (newUser: User) => {
+    DataManager.addUser(newUser);
+    setRegisteredUsers(prev => [...prev, newUser]);
   };
 
   const value: AuthContextType = {
     user,
+    isAuthenticated: !!user,
     login,
     register,
     logout,
     updateProfile,
-    isLoading,
     registeredUsers,
     addRegisteredUser
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

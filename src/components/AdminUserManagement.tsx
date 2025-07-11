@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Users, UserPlus, Edit, Trash2, Search, Eye, BookOpen, Award, Target } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth, User } from '@/contexts/AuthContext';
-import { localStorageUtils, STORAGE_KEYS } from '@/data/dummyData';
+import { DataManager } from '@/data/dummyData';
 
 const AdminUserManagement = () => {
   const { registeredUsers, addRegisteredUser } = useAuth();

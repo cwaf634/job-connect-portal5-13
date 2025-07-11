@@ -1,390 +1,395 @@
-import { Job, User, SubscriptionPlan, Application, Certificate, MockTestResult, Notification } from '@/types';
+
+import { User } from '@/contexts/AuthContext';
+import { SubscriptionPlan } from '@/contexts/SubscriptionPlansContext';
+
+// Data interfaces
+export interface Certificate {
+  id: string;
+  userId: string;
+  certificateName: string;
+  description?: string;
+  issueDate: string;
+  certificateFile: string;
+  status: 'pending' | 'verified' | 'rejected';
+  verifiedDate?: string;
+  verifiedBy?: string;
+  uploadDate: string;
+}
+
+export interface Job {
+  id: string;
+  title: string;
+  department: string;
+  location: string;
+  salary: string;
+  type: string;
+  experience: string;
+  qualification: string;
+  description: string;
+  applicationDeadline: string;
+  vacancies: number;
+  ageLimit: string;
+  category: string;
+  examDate: string;
+  syllabus: string[];
+  applicationFee: string;
+  selectionProcess: string;
+}
+
+export interface Application {
+  id: string;
+  jobId: string;
+  userId: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  appliedDate: string;
+  documents: string[];
+}
+
+export interface MockTestResult {
+  id: string;
+  userId: string;
+  testId: string;
+  score: number;
+  totalQuestions: number;
+  correctAnswers: number;
+  timeSpent: number;
+  completedAt: string;
+}
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface AdminPlan {
+  id: string;
+  name: string;
+  price: number;
+  duration: string;
+  description: string;
+  features: string[];
+  maxUsers: number;
+  storage: string;
+  support: string;
+  status: string;
+  isPopular: boolean;
+  color: string;
+  iconColor: string;
+  bgColor: string;
+  borderColor: string;
+}
+
+export interface UserSubscription {
+  userId: string;
+  planId: string;
+  planName: string;
+  subscribedAt: string;
+  expiresAt: string;
+  isActive: boolean;
+}
 
 // Storage keys
 export const STORAGE_KEYS = {
   USERS: 'jobconnect_users',
-  CURRENT_USER: 'jobconnect_current_user',
+  CERTIFICATES: 'jobconnect_certificates',
   JOBS: 'jobconnect_jobs',
   APPLICATIONS: 'jobconnect_applications',
-  CERTIFICATES: 'jobconnect_certificates',
   MOCK_TEST_RESULTS: 'jobconnect_mock_test_results',
   SUBSCRIPTION_PLANS: 'jobconnect_subscription_plans',
+  ADMIN_PLANS: 'jobconnect_admin_plans',
   USER_SUBSCRIPTIONS: 'jobconnect_user_subscriptions',
   NOTIFICATIONS: 'jobconnect_notifications'
-};
+} as const;
 
-// LocalStorage utility functions
+// Local storage utility functions
 export const localStorageUtils = {
-  get: (key: string, defaultValue: any) => {
+  get: <T>(key: string, defaultValue: T): T => {
     try {
-      const storedValue = localStorage.getItem(key);
-      return storedValue ? JSON.parse(storedValue) : defaultValue;
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : defaultValue;
     } catch (error) {
-      console.error(`Error getting ${key} from localStorage:`, error);
+      console.error(`Error reading from localStorage key "${key}":`, error);
       return defaultValue;
     }
   },
-  set: (key: string, value: any) => {
+
+  set: <T>(key: string, value: T): void => {
     try {
       localStorage.setItem(key, JSON.stringify(value));
     } catch (error) {
-      console.error(`Error setting ${key} in localStorage:`, error);
+      console.error(`Error saving to localStorage key "${key}":`, error);
     }
   },
-  remove: (key: string) => {
+
+  remove: (key: string): void => {
     try {
       localStorage.removeItem(key);
     } catch (error) {
-      console.error(`Error removing ${key} from localStorage:`, error);
-    }
-  },
-  clear: () => {
-    try {
-      localStorage.clear();
-    } catch (error) {
-      console.error("Error clearing localStorage:", error);
+      console.error(`Error removing localStorage key "${key}":`, error);
     }
   }
 };
 
-// Dummy user data
-export const dummyUsers: User[] = [
-  {
-    id: '1',
-    email: 'student@jobconnect.com',
-    name: 'Demo Student',
-    userType: 'student',
-    subscriptionTier: 'Basic',
-    profilePhoto: '',
-    profile: {
-      phone: '123-456-7890',
-      location: 'New York',
-      bio: 'Aspiring software engineer',
-      skills: ['JavaScript', 'React', 'Node.js'],
-      experience: '2 years',
-      company: '',
-      department: ''
+// Data manager class
+export class DataManager {
+  // User management
+  static getUsers(): User[] {
+    return localStorageUtils.get(STORAGE_KEYS.USERS, []);
+  }
+
+  static addUser(user: User): void {
+    const users = this.getUsers();
+    users.push(user);
+    localStorageUtils.set(STORAGE_KEYS.USERS, users);
+  }
+
+  // Job management
+  static getJobs(): Job[] {
+    return localStorageUtils.get(STORAGE_KEYS.JOBS, []);
+  }
+
+  static addJob(job: Job): void {
+    const jobs = this.getJobs();
+    jobs.push(job);
+    localStorageUtils.set(STORAGE_KEYS.JOBS, jobs);
+  }
+
+  // Application management
+  static getApplications(): Application[] {
+    return localStorageUtils.get(STORAGE_KEYS.APPLICATIONS, []);
+  }
+
+  static addApplication(application: Application): void {
+    const applications = this.getApplications();
+    applications.push(application);
+    localStorageUtils.set(STORAGE_KEYS.APPLICATIONS, applications);
+  }
+
+  // Certificate management
+  static getCertificates(): Certificate[] {
+    return localStorageUtils.get(STORAGE_KEYS.CERTIFICATES, []);
+  }
+
+  static addCertificate(certificate: Certificate): void {
+    const certificates = this.getCertificates();
+    certificates.push(certificate);
+    localStorageUtils.set(STORAGE_KEYS.CERTIFICATES, certificates);
+  }
+
+  // Mock test results
+  static getMockTestResults(): MockTestResult[] {
+    return localStorageUtils.get(STORAGE_KEYS.MOCK_TEST_RESULTS, []);
+  }
+
+  static addMockTestResult(result: MockTestResult): void {
+    const results = this.getMockTestResults();
+    results.push(result);
+    localStorageUtils.set(STORAGE_KEYS.MOCK_TEST_RESULTS, results);
+  }
+
+  // Subscription plans
+  static getSubscriptionPlans(): SubscriptionPlan[] {
+    return localStorageUtils.get(STORAGE_KEYS.SUBSCRIPTION_PLANS, []);
+  }
+
+  static addSubscriptionPlan(plan: SubscriptionPlan): void {
+    const plans = this.getSubscriptionPlans();
+    plans.push(plan);
+    localStorageUtils.set(STORAGE_KEYS.SUBSCRIPTION_PLANS, plans);
+  }
+
+  // Admin plans
+  static getAdminPlans(): AdminPlan[] {
+    return localStorageUtils.get(STORAGE_KEYS.ADMIN_PLANS, []);
+  }
+
+  static addAdminPlan(plan: Omit<AdminPlan, 'id'>): AdminPlan {
+    const plans = this.getAdminPlans();
+    const newPlan: AdminPlan = {
+      ...plan,
+      id: Date.now().toString()
+    };
+    plans.unshift(newPlan);
+    localStorageUtils.set(STORAGE_KEYS.ADMIN_PLANS, plans);
+    
+    // Sync to subscription plans
+    this.syncAdminPlansToSubscriptionPlans();
+    return newPlan;
+  }
+
+  static updateAdminPlan(id: string, updates: Partial<AdminPlan>): AdminPlan | null {
+    const plans = this.getAdminPlans();
+    const index = plans.findIndex(plan => plan.id === id);
+    
+    if (index !== -1) {
+      plans[index] = { ...plans[index], ...updates };
+      localStorageUtils.set(STORAGE_KEYS.ADMIN_PLANS, plans);
+      this.syncAdminPlansToSubscriptionPlans();
+      return plans[index];
     }
-  },
-  {
-    id: '2',
-    email: 'shopowner@jobconnect.com',
-    name: 'Demo Shop Owner',
-    userType: 'employer',
-    profilePhoto: '',
-    profile: {
-      phone: '987-654-3210',
-      location: 'Los Angeles',
-      bio: 'Local business owner',
-      skills: [],
-      experience: '',
-      company: 'Acme Corp',
-      department: ''
+    return null;
+  }
+
+  static deleteAdminPlan(id: string): boolean {
+    const plans = this.getAdminPlans();
+    const filtered = plans.filter(plan => plan.id !== id);
+    
+    if (filtered.length !== plans.length) {
+      localStorageUtils.set(STORAGE_KEYS.ADMIN_PLANS, filtered);
+      this.syncAdminPlansToSubscriptionPlans();
+      return true;
     }
-  },
-  {
-    id: '3',
-    email: 'admin@jobconnect.com',
-    name: 'Demo Administrator',
-    userType: 'admin',
-    profilePhoto: '',
-    profile: {
-      phone: '555-123-4567',
-      location: 'Chicago',
-      bio: 'System administrator',
-      skills: ['System Administration', 'Networking'],
-      experience: '5 years',
-      company: '',
-      department: ''
+    return false;
+  }
+
+  // User subscriptions
+  static getUserSubscriptions(): UserSubscription[] {
+    return localStorageUtils.get(STORAGE_KEYS.USER_SUBSCRIPTIONS, []);
+  }
+
+  static addUserSubscription(subscription: UserSubscription): void {
+    const subscriptions = this.getUserSubscriptions();
+    const existingIndex = subscriptions.findIndex(sub => sub.userId === subscription.userId);
+    
+    if (existingIndex !== -1) {
+      subscriptions[existingIndex] = subscription;
+    } else {
+      subscriptions.push(subscription);
+    }
+    
+    localStorageUtils.set(STORAGE_KEYS.USER_SUBSCRIPTIONS, subscriptions);
+  }
+
+  static getUserSubscription(userId: string): UserSubscription | null {
+    const subscriptions = this.getUserSubscriptions();
+    return subscriptions.find(sub => sub.userId === userId) || null;
+  }
+
+  // Notifications
+  static getNotifications(): Notification[] {
+    return localStorageUtils.get(STORAGE_KEYS.NOTIFICATIONS, []);
+  }
+
+  static addNotification(notification: Notification): void {
+    const notifications = this.getNotifications();
+    notifications.push(notification);
+    localStorageUtils.set(STORAGE_KEYS.NOTIFICATIONS, notifications);
+  }
+
+  // Sync admin plans to subscription plans
+  static syncAdminPlansToSubscriptionPlans(): void {
+    const adminPlans = this.getAdminPlans();
+    const subscriptionPlans: SubscriptionPlan[] = adminPlans
+      .filter(plan => plan.status === 'active')
+      .map(plan => ({
+        id: plan.id,
+        name: plan.name,
+        price: plan.price === 0 ? '₹0' : `₹${plan.price}`,
+        period: plan.duration === 'monthly' ? '/month' : '/year',
+        features: plan.features,
+        isPopular: plan.isPopular,
+        iconColor: this.getIconColorFromColor(plan.color),
+        bgColor: this.getBgColorFromColor(plan.color),
+        borderColor: this.getBorderColorFromColor(plan.color)
+      }));
+    
+    localStorageUtils.set(STORAGE_KEYS.SUBSCRIPTION_PLANS, subscriptionPlans);
+  }
+
+  private static getIconColorFromColor(color: string): string {
+    const colorMap = {
+      blue: 'text-blue-500',
+      green: 'text-green-500',
+      purple: 'text-purple-500',
+      orange: 'text-orange-500'
+    };
+    return colorMap[color as keyof typeof colorMap] || 'text-gray-500';
+  }
+
+  private static getBgColorFromColor(color: string): string {
+    const colorMap = {
+      blue: 'bg-blue-50',
+      green: 'bg-green-50',
+      purple: 'bg-purple-50',
+      orange: 'bg-orange-50'
+    };
+    return colorMap[color as keyof typeof colorMap] || 'bg-gray-50';
+  }
+
+  private static getBorderColorFromColor(color: string): string {
+    const colorMap = {
+      blue: 'border-blue-200',
+      green: 'border-green-200',
+      purple: 'border-purple-200',
+      orange: 'border-orange-200'
+    };
+    return colorMap[color as keyof typeof colorMap] || 'border-gray-200';
+  }
+
+  // Initialize default data
+  static initializeDefaultData(): void {
+    const adminPlans = this.getAdminPlans();
+    if (adminPlans.length === 0) {
+      const defaultPlans: Omit<AdminPlan, 'id'>[] = [
+        {
+          name: 'Basic',
+          price: 0,
+          duration: 'monthly',
+          description: 'Perfect for getting started',
+          features: ['5 Mock Tests', 'Basic job search', 'Certificate upload', 'Email notifications'],
+          maxUsers: 1,
+          storage: '1GB',
+          support: 'Email',
+          status: 'active',
+          isPopular: false,
+          color: 'blue',
+          iconColor: 'text-gray-500',
+          bgColor: 'bg-gray-50',
+          borderColor: 'border-gray-200'
+        },
+        {
+          name: 'Premium',
+          price: 299,
+          duration: 'monthly',
+          description: 'Most popular choice for job seekers',
+          features: ['50 Mock Tests', 'Priority job applications', 'Direct shopkeeper contact', '24/7 chat support', 'Resume optimization', 'Advanced mock tests'],
+          maxUsers: 1,
+          storage: '10GB',
+          support: 'Email & Chat',
+          status: 'active',
+          isPopular: true,
+          color: 'green',
+          iconColor: 'text-blue-500',
+          bgColor: 'bg-blue-50',
+          borderColor: 'border-blue-200'
+        },
+        {
+          name: 'Enterprise',
+          price: 999,
+          duration: 'monthly',
+          description: 'Complete solution for serious job seekers',
+          features: ['All Premium features', 'Unlimited applications', 'Personal career advisor', 'Interview preparation', 'Unlimited mock tests', 'Priority support'],
+          maxUsers: 1,
+          storage: '50GB',
+          support: '24/7 Phone & Chat',
+          status: 'active',
+          isPopular: false,
+          color: 'purple',
+          iconColor: 'text-purple-500',
+          bgColor: 'bg-purple-50',
+          borderColor: 'border-purple-200'
+        }
+      ];
+
+      defaultPlans.forEach(plan => this.addAdminPlan(plan));
     }
   }
-];
+}
 
-// Dummy job data
-export const dummyJobs: Job[] = [
-  {
-    id: '101',
-    title: 'Software Engineer',
-    company: 'Tech Innovations Inc.',
-    location: 'San Francisco, CA',
-    description: 'Develop and maintain web applications.',
-    requirements: ['Bachelor\'s degree', '3+ years experience', 'JavaScript, React'],
-    salary: '$120,000 - $150,000',
-    postedDate: '2024-01-20',
-    applicationDeadline: '2024-02-28',
-    contactEmail: 'hr@techinnovations.com',
-    jobType: 'Full-time',
-    category: 'Technology',
-    employerId: '2'
-  },
-  {
-    id: '102',
-    title: 'Marketing Manager',
-    company: 'Global Marketing Solutions',
-    location: 'New York, NY',
-    description: 'Lead marketing campaigns and strategies.',
-    requirements: ['Bachelor\'s degree', '5+ years experience', 'Marketing strategy, Analytics'],
-    salary: '$100,000 - $130,000',
-    postedDate: '2024-01-15',
-    applicationDeadline: '2024-02-20',
-    contactEmail: 'careers@globalmarketing.com',
-    jobType: 'Full-time',
-    category: 'Marketing',
-    employerId: '2'
-  },
-  {
-    id: '103',
-    title: 'Data Analyst',
-    company: 'Data Insights Corp',
-    location: 'Chicago, IL',
-    description: 'Analyze data to provide insights and recommendations.',
-    requirements: ['Bachelor\'s degree', '2+ years experience', 'Data analysis, SQL, Python'],
-    salary: '$90,000 - $110,000',
-    postedDate: '2024-01-10',
-    applicationDeadline: '2024-02-15',
-    contactEmail: 'jobs@datainsights.com',
-    jobType: 'Full-time',
-    category: 'Analytics',
-    employerId: '2'
-  }
-];
-
-// Dummy application data
-export const dummyApplications: Application[] = [
-  {
-    id: '201',
-    jobId: '101',
-    applicantId: '1',
-    applicationDate: '2024-01-25',
-    status: 'Pending',
-    resumeUrl: 'https://example.com/resume1.pdf',
-    coverLetter: 'Enthusiastic software engineer eager to contribute to Tech Innovations Inc.'
-  },
-  {
-    id: '202',
-    jobId: '102',
-    applicantId: '1',
-    applicationDate: '2024-01-22',
-    status: 'Reviewed',
-    resumeUrl: 'https://example.com/resume2.pdf',
-    coverLetter: 'Experienced marketing professional ready to drive growth for Global Marketing Solutions.'
-  }
-];
-
-// Dummy certificate data
-export const dummyCertificates: Certificate[] = [
-  {
-    id: '301',
-    name: 'Certified Scrum Master',
-    url: 'https://example.com/csm.pdf',
-    uploadDate: '2023-11-15',
-    status: 'verified',
-    studentId: '1'
-  },
-  {
-    id: '302',
-    name: 'AWS Certified Developer',
-    url: 'https://example.com/aws.pdf',
-    uploadDate: '2023-10-20',
-    status: 'pending',
-    studentId: '1'
-  }
-];
-
-// Dummy mock test result data
-export const dummyMockTestResults: MockTestResult[] = [
-  {
-    id: '401',
-    testName: 'JavaScript Basics',
-    score: 85,
-    dateTaken: '2024-01-18',
-    studentId: '1'
-  },
-  {
-    id: '402',
-    testName: 'React Fundamentals',
-    score: 92,
-    dateTaken: '2024-01-25',
-    studentId: '1'
-  }
-];
-
-// Dummy subscription plan data
-export const dummySubscriptionPlans: SubscriptionPlan[] = [
-  {
-    id: '501',
-    name: 'Basic',
-    price: '₹0',
-    period: 'monthly',
-    features: ['Access to basic mock tests', 'Limited job listings'],
-    isPopular: false,
-    iconColor: 'text-gray-500',
-    bgColor: 'bg-gray-100',
-    borderColor: 'border-gray-200'
-  },
-  {
-    id: '502',
-    name: 'Premium',
-    price: '₹499',
-    period: 'monthly',
-    features: ['Unlimited mock tests', 'Featured job listings', 'Priority support'],
-    isPopular: true,
-    iconColor: 'text-blue-500',
-    bgColor: 'bg-blue-50',
-    borderColor: 'border-blue-200'
-  },
-  {
-    id: '503',
-    name: 'Enterprise',
-    price: '₹999',
-    period: 'monthly',
-    features: ['All premium features', 'Direct contact with employers', 'Personalized career coaching'],
-    isPopular: false,
-    iconColor: 'text-purple-500',
-    bgColor: 'bg-purple-50',
-    borderColor: 'border-purple-200'
-  }
-];
-
-// Dummy notification data
-export const dummyNotifications: Notification[] = [
-  {
-    id: '601',
-    type: 'application',
-    message: 'Your application for Software Engineer at Tech Innovations Inc. has been reviewed.',
-    date: '2024-01-28',
-    isRead: false,
-    userId: '1'
-  },
-  {
-    id: '602',
-    type: 'certificate',
-    message: 'Your Certified Scrum Master certificate has been verified.',
-    date: '2024-01-27',
-    isRead: true,
-    userId: '1'
-  }
-];
-
-// DataManager to encapsulate data access and manipulation
-export const DataManager = {
-  getUsers: (): User[] => {
-    return localStorageUtils.get(STORAGE_KEYS.USERS, dummyUsers);
-  },
-  getJobs: (): Job[] => {
-    return localStorageUtils.get(STORAGE_KEYS.JOBS, dummyJobs);
-  },
-  getApplications: (): Application[] => {
-    return localStorageUtils.get(STORAGE_KEYS.APPLICATIONS, dummyApplications);
-  },
-  getCertificates: (): Certificate[] => {
-    return localStorageUtils.get(STORAGE_KEYS.CERTIFICATES, dummyCertificates);
-  },
-  getMockTestResults: (): MockTestResult[] => {
-    return localStorageUtils.get(STORAGE_KEYS.MOCK_TEST_RESULTS, dummyMockTestResults);
-  },
-  getSubscriptionPlans: (): SubscriptionPlan[] => {
-    return localStorageUtils.get(STORAGE_KEYS.SUBSCRIPTION_PLANS, dummySubscriptionPlans);
-  },
-  getNotifications: (): Notification[] => {
-    return localStorageUtils.get(STORAGE_KEYS.NOTIFICATIONS, dummyNotifications);
-  },
-  addUser: (user: User) => {
-    const users = DataManager.getUsers();
-    localStorageUtils.set(STORAGE_KEYS.USERS, [...users, user]);
-  },
-  addJob: (job: Job) => {
-    const jobs = DataManager.getJobs();
-    localStorageUtils.set(STORAGE_KEYS.JOBS, [...jobs, job]);
-  },
-  addApplication: (application: Application) => {
-    const applications = DataManager.getApplications();
-    localStorageUtils.set(STORAGE_KEYS.APPLICATIONS, [...applications, application]);
-  },
-  addCertificate: (certificate: Certificate) => {
-    const certificates = DataManager.getCertificates();
-    localStorageUtils.set(STORAGE_KEYS.CERTIFICATES, [...certificates, certificate]);
-  },
-  addMockTestResult: (mockTestResult: MockTestResult) => {
-    const mockTestResults = DataManager.getMockTestResults();
-    localStorageUtils.set(STORAGE_KEYS.MOCK_TEST_RESULTS, [...mockTestResults, mockTestResult]);
-  },
-  addSubscriptionPlan: (subscriptionPlan: SubscriptionPlan) => {
-    const subscriptionPlans = DataManager.getSubscriptionPlans();
-    localStorageUtils.set(STORAGE_KEYS.SUBSCRIPTION_PLANS, [...subscriptionPlans, subscriptionPlan]);
-  },
-  addNotification: (notification: Notification) => {
-    const notifications = DataManager.getNotifications();
-    localStorageUtils.set(STORAGE_KEYS.NOTIFICATIONS, [...notifications, notification]);
-  },
-  updateUser: (id: string, updatedUser: Partial<User>) => {
-    const users = DataManager.getUsers();
-    const updatedUsers = users.map(user => user.id === id ? { ...user, ...updatedUser } : user);
-    localStorageUtils.set(STORAGE_KEYS.USERS, updatedUsers);
-  },
-   updateJob: (id: string, updatedJob: Partial<Job>) => {
-    const jobs = DataManager.getJobs();
-    const updatedJobs = jobs.map(job => job.id === id ? { ...job, ...updatedJob } : job);
-    localStorageUtils.set(STORAGE_KEYS.JOBS, updatedJobs);
-  },
-  updateApplication: (id: string, updatedApplication: Partial<Application>) => {
-    const applications = DataManager.getApplications();
-    const updatedApplications = applications.map(application => application.id === id ? { ...application, ...updatedApplication } : application);
-    localStorageUtils.set(STORAGE_KEYS.APPLICATIONS, updatedApplications);
-  },
-  updateCertificate: (id: string, updatedCertificate: Partial<Certificate>) => {
-    const certificates = DataManager.getCertificates();
-    const updatedCertificates = certificates.map(certificate => certificate.id === id ? { ...certificate, ...updatedCertificate } : certificate);
-    localStorageUtils.set(STORAGE_KEYS.CERTIFICATES, updatedCertificates);
-  },
-  updateMockTestResult: (id: string, updatedMockTestResult: Partial<MockTestResult>) => {
-    const mockTestResults = DataManager.getMockTestResults();
-    const updatedMockTestResults = mockTestResults.map(mockTestResult => mockTestResult.id === id ? { ...mockTestResult, ...updatedMockTestResult } : mockTestResult);
-    localStorageUtils.set(STORAGE_KEYS.MOCK_TEST_RESULTS, updatedMockTestResults);
-  },
-  updateSubscriptionPlan: (id: string, updatedSubscriptionPlan: Partial<SubscriptionPlan>) => {
-    const subscriptionPlans = DataManager.getSubscriptionPlans();
-    const updatedSubscriptionPlans = subscriptionPlans.map(subscriptionPlan => subscriptionPlan.id === id ? { ...subscriptionPlan, ...updatedSubscriptionPlan } : subscriptionPlan);
-    localStorageUtils.set(STORAGE_KEYS.SUBSCRIPTION_PLANS, updatedSubscriptionPlans);
-  },
-  updateNotification: (id: string, updatedNotification: Partial<Notification>) => {
-    const notifications = DataManager.getNotifications();
-    const updatedNotifications = notifications.map(notification => notification.id === id ? { ...notification, ...updatedNotification } : notification);
-    localStorageUtils.set(STORAGE_KEYS.NOTIFICATIONS, updatedNotifications);
-  },
-  deleteUser: (id: string) => {
-    const users = DataManager.getUsers();
-    const updatedUsers = users.filter(user => user.id !== id);
-    localStorageUtils.set(STORAGE_KEYS.USERS, updatedUsers);
-  },
-  deleteJob: (id: string) => {
-    const jobs = DataManager.getJobs();
-    const updatedJobs = jobs.filter(job => job.id !== id);
-    localStorageUtils.set(STORAGE_KEYS.JOBS, updatedJobs);
-  },
-  deleteApplication: (id: string) => {
-    const applications = DataManager.getApplications();
-    const updatedApplications = applications.filter(application => application.id !== id);
-    localStorageUtils.set(STORAGE_KEYS.APPLICATIONS, updatedApplications);
-  },
-  deleteCertificate: (id: string) => {
-    const certificates = DataManager.getCertificates();
-    const updatedCertificates = certificates.filter(certificate => certificate.id !== id);
-    localStorageUtils.set(STORAGE_KEYS.CERTIFICATES, updatedCertificates);
-  },
-  deleteMockTestResult: (id: string) => {
-    const mockTestResults = DataManager.getMockTestResults();
-    const updatedMockTestResults = mockTestResults.filter(mockTestResult => mockTestResult.id !== id);
-    localStorageUtils.set(STORAGE_KEYS.MOCK_TEST_RESULTS, updatedMockTestResults);
-  },
-  deleteSubscriptionPlan: (id: string) => {
-    const subscriptionPlans = DataManager.getSubscriptionPlans();
-    const updatedSubscriptionPlans = subscriptionPlans.filter(subscriptionPlan => subscriptionPlan.id !== id);
-    localStorageUtils.set(STORAGE_KEYS.SUBSCRIPTION_PLANS, updatedSubscriptionPlans);
-  },
-  deleteNotification: (id: string) => {
-    const notifications = DataManager.getNotifications();
-    const updatedNotifications = notifications.filter(notification => notification.id !== id);
-    localStorageUtils.set(STORAGE_KEYS.NOTIFICATIONS, updatedNotifications);
-  }
-};
+// Initialize data when module loads
+DataManager.initializeDefaultData();

@@ -19,7 +19,7 @@ const NotificationPopover = ({ children, appliedJobs = [] }: NotificationPopover
   const { user } = useAuth();
 
   const userType = user?.userType || 'student';
-  const userNotifications = getPanelNotifications(userType);
+  const userNotifications = getPanelNotifications(userType === 'administrator' ? 'administrator' : userType);
   const jobNotifications = userType === 'employer' ? appliedJobs.filter(job => job.status === 'pending') : [];
   
   const allNotifications = [
