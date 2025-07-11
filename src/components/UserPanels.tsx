@@ -5,9 +5,9 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import UserPanel from './UserPanel';
 
 interface UserPanelsProps {
-  onLoginClick: (userType: 'student' | 'employer' | 'admin') => void;
-  onRegisterClick: (userType: 'student' | 'employer' | 'admin') => void;
-  activePanel?: 'student' | 'employer' | 'admin' | null;
+  onLoginClick: (userType: 'student' | 'employer' | 'administrator') => void;
+  onRegisterClick: (userType: 'student' | 'employer' | 'administrator') => void;
+  activePanel?: 'student' | 'employer' | 'administrator' | null;
 }
 
 const UserPanels = ({ onLoginClick, onRegisterClick, activePanel }: UserPanelsProps) => {
@@ -31,7 +31,7 @@ const UserPanels = ({ onLoginClick, onRegisterClick, activePanel }: UserPanelsPr
       buttonColor: 'bg-green-500 hover:bg-green-600'
     },
     {
-      type: 'admin' as const,
+      type: 'administrator' as const,
       title: t('administrators'),
       description: t('administratorsDesc'),
       icon: Shield,

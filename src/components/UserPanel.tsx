@@ -6,14 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useLanguage } from '@/contexts/LanguageContext';
 
 interface UserPanelProps {
-  type: 'student' | 'employer' | 'admin';
+  type: 'student' | 'employer' | 'administrator';
   title: string;
   description: string;
   icon: LucideIcon;
   color: string;
   buttonColor: string;
-  onLoginClick: (userType: 'student' | 'employer' | 'admin') => void;
-  onRegisterClick: (userType: 'student' | 'employer' | 'admin') => void;
+  onLoginClick: (userType: 'student' | 'employer' | 'administrator') => void;
+  onRegisterClick: (userType: 'student' | 'employer' | 'administrator') => void;
 }
 
 const UserPanel = ({ type, title, description, icon: IconComponent, color, buttonColor, onLoginClick, onRegisterClick }: UserPanelProps) => {
