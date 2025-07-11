@@ -6,7 +6,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  userType: 'student' | 'employer' | 'administrator';
+  userType: 'student' | 'employer' | 'admin';
   subscriptionTier?: string;
   profilePhoto?: string;
   profile?: {
@@ -22,8 +22,8 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, userType: 'student' | 'employer' | 'administrator') => Promise<boolean>;
-  register: (email: string, password: string, name: string, userType: 'student' | 'employer' | 'administrator') => Promise<boolean>;
+  login: (email: string, password: string, userType: 'student' | 'employer' | 'admin') => Promise<boolean>;
+  register: (email: string, password: string, name: string, userType: 'student' | 'employer' | 'admin') => Promise<boolean>;
   logout: () => void;
   updateProfile: (profileData: Partial<User['profile']> & { subscriptionTier?: string; profilePhoto?: string; name?: string }) => void;
   isLoading: boolean;
@@ -58,6 +58,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } else {
       // Initialize with default users if no stored users
       setRegisteredUsers(dummyUsers);
+      localStorageUtils.set(STORAGE_KEYS.USERS, dummyUsers);
+    }
+
+    // Check for existing session
+    const savedUser = localStorageUtils.get(STORAGE_KEYS.CURRENT_USER, null);
+    if (savedUser) {
+      setUser(savedUser);
     }
   }, []);
 
@@ -68,79 +75,112 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [registeredUsers]);
 
-
   const addRegisteredUser = (newUser: User) => {
     setRegisteredUsers(prev => {
-      // Add new user at the top of the list
       const updated = [newUser, ...prev];
+      localStorageUtils.set(STORAGE_KEYS.USERS, updated);
       return updated;
     });
   };
 
-  const login = async (email: string, password: string, userType: 'student' | 'employer' | 'administrator'): Promise<boolean> => {
+  const login = async (email: string, password: string, userType: 'student' | 'employer' | 'admin'): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Get fresh users from DataManager to ensure we have the latest data
-    const currentUsers = DataManager.getUsers();
-    
-    // Check if user exists in registered users with correct credentials
-    const foundUser = currentUsers.find(u => 
-      u.email === email && u.userType === userType
-    );
-    
-    if (foundUser) {
-      setUser(foundUser);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Get fresh users from DataManager and localStorage
+      const currentUsers = DataManager.getUsers();
+      const storedUsers = localStorageUtils.get(STORAGE_KEYS.USERS, []);
+      const allUsers = [...currentUsers, ...storedUsers];
+      
+      // Normalize userType for comparison (handle both 'employer' and 'admin' cases)
+      const normalizedUserType = userType === 'employer' ? 'employer' : userType;
+      
+      // Check if user exists with correct credentials and user type
+      const foundUser = allUsers.find(u => {
+        const userTypeMatch = u.userType === normalizedUserType || 
+                             (normalizedUserType === 'employer' && u.userType === 'employer') ||
+                             (normalizedUserType === 'admin' && (u.userType === 'admin' || u.userType === 'administrator'));
+        
+        return u.email === email && userTypeMatch;
+      });
+      
+      if (foundUser) {
+        // Normalize the user type for consistency
+        const normalizedUser = {
+          ...foundUser,
+          userType: foundUser.userType === 'administrator' ? 'admin' : foundUser.userType
+        } as User;
+        
+        setUser(normalizedUser);
+        localStorageUtils.set(STORAGE_KEYS.CURRENT_USER, normalizedUser);
+        setIsLoading(false);
+        return true;
+      }
+      
       setIsLoading(false);
-      return true;
-    }
-    
-    setIsLoading(false);
-    return false;
-  };
-
-  const register = async (email: string, password: string, name: string, userType: 'student' | 'employer' | 'administrator'): Promise<boolean> => {
-    setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Check if user already exists
-    const existingUser = registeredUsers.find(u => u.email === email);
-    if (existingUser) {
+      return false;
+    } catch (error) {
+      console.error('Login error:', error);
       setIsLoading(false);
       return false;
     }
+  };
+
+  const register = async (email: string, password: string, name: string, userType: 'student' | 'employer' | 'admin'): Promise<boolean> => {
+    setIsLoading(true);
     
-    // Create new user
-    const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email,
-      name,
-      userType,
-      subscriptionTier: 'Basic',
-      profilePhoto: '',
-      profile: {
-        phone: '',
-        location: '',
-        bio: '',
-        skills: [],
-        experience: '',
-        company: '',
-        department: ''
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Check if user already exists
+      const currentUsers = DataManager.getUsers();
+      const storedUsers = localStorageUtils.get(STORAGE_KEYS.USERS, []);
+      const allUsers = [...currentUsers, ...storedUsers];
+      
+      const existingUser = allUsers.find(u => u.email === email);
+      if (existingUser) {
+        setIsLoading(false);
+        return false;
       }
-    };
-    
-    addRegisteredUser(newUser);
-    setUser(newUser);
-    setIsLoading(false);
-    return true;
+      
+      // Create new user
+      const newUser: User = {
+        id: Math.random().toString(36).substr(2, 9),
+        email,
+        name,
+        userType: userType === 'admin' ? 'admin' : userType,
+        subscriptionTier: userType === 'student' ? 'Basic' : undefined,
+        profilePhoto: '',
+        profile: {
+          phone: '',
+          location: '',
+          bio: '',
+          skills: [],
+          experience: '',
+          company: userType === 'employer' ? '' : undefined,
+          department: ''
+        }
+      };
+      
+      addRegisteredUser(newUser);
+      setUser(newUser);
+      localStorageUtils.set(STORAGE_KEYS.CURRENT_USER, newUser);
+      setIsLoading(false);
+      return true;
+    } catch (error) {
+      console.error('Registration error:', error);
+      setIsLoading(false);
+      return false;
+    }
   };
 
   const logout = () => {
     setUser(null);
+    localStorageUtils.remove(STORAGE_KEYS.CURRENT_USER);
   };
 
   const updateProfile = (profileData: Partial<User['profile']> & { subscriptionTier?: string; profilePhoto?: string; name?: string }) => {
@@ -157,11 +197,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
       };
       setUser(updatedUser);
+      localStorageUtils.set(STORAGE_KEYS.CURRENT_USER, updatedUser);
       
       // Update in registered users as well
-      setRegisteredUsers(prev => 
-        prev.map(u => u.id === user.id ? updatedUser : u)
-      );
+      setRegisteredUsers(prev => {
+        const updated = prev.map(u => u.id === user.id ? updatedUser : u);
+        localStorageUtils.set(STORAGE_KEYS.USERS, updated);
+        return updated;
+      });
     }
   };
 

@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultUserType?: 'student' | 'employer' | 'administrator' | null;
+  defaultUserType?: 'student' | 'employer' | 'admin' | null;
 }
 
 const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultUserType }) => {
@@ -20,7 +20,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
     email: '',
     password: '',
     confirmPassword: '',
-    userType: defaultUserType || 'student' as 'student' | 'employer' | 'administrator'
+    userType: defaultUserType || 'student' as 'student' | 'employer' | 'admin'
   });
   const { register, isLoading } = useAuth();
   const { toast } = useToast();
@@ -45,11 +45,17 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
           description: `Welcome to JobConnect! Setting up your ${formData.userType} dashboard.`,
         });
         onClose();
+      } else {
+        toast({
+          title: "Registration Failed",
+          description: "Email already exists or registration failed. Please try with a different email.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
         title: "Registration Failed",
-        description: "Please check your information and try again.",
+        description: "An error occurred during registration. Please try again.",
         variant: "destructive",
       });
     }
@@ -70,7 +76,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
             <Label htmlFor="userType">User Type</Label>
             <Select 
               value={formData.userType} 
-              onValueChange={(value: 'student' | 'employer' | 'administrator') => 
+              onValueChange={(value: 'student' | 'employer' | 'admin') => 
                 handleInputChange('userType', value)
               }
             >
@@ -80,7 +86,7 @@ const RegisterModal: React.FC<RegisterModalProps> = ({ isOpen, onClose, defaultU
               <SelectContent>
                 <SelectItem value="student">Student</SelectItem>
                 <SelectItem value="employer">Employer</SelectItem>
-                <SelectItem value="administrator">Administrator</SelectItem>
+                <SelectItem value="admin">Administrator</SelectItem>
               </SelectContent>
             </Select>
           </div>

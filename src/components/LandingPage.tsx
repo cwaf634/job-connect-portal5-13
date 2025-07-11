@@ -12,10 +12,10 @@ import RegisterModal from './RegisterModal';
 const LandingPage = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [selectedUserType, setSelectedUserType] = useState<'student' | 'employer' | 'administrator' | null>(null);
-  const [activePanel, setActivePanel] = useState<'student' | 'employer' | 'administrator' | null>(null);
+  const [selectedUserType, setSelectedUserType] = useState<'student' | 'employer' | 'admin' | null>(null);
+  const [activePanel, setActivePanel] = useState<'student' | 'employer' | 'admin' | null>(null);
 
-  const handleLoginClick = (userType?: 'student' | 'employer' | 'administrator') => {
+  const handleLoginClick = (userType?: 'student' | 'employer' | 'admin') => {
     if (userType) {
       setSelectedUserType(userType);
       setActivePanel(userType);
@@ -23,7 +23,7 @@ const LandingPage = () => {
     setShowLoginModal(true);
   };
 
-  const handleRegisterClick = (userType?: 'student' | 'employer' | 'administrator') => {
+  const handleRegisterClick = (userType?: 'student' | 'employer' | 'admin') => {
     if (userType) {
       setSelectedUserType(userType);
       setActivePanel(userType);

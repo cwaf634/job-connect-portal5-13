@@ -2,24 +2,21 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { Card, CardContent } from '@/components/ui/card';
 import { User, Building2, Shield, Mail, Lock } from 'lucide-react';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultUserType?: 'student' | 'employer' | 'administrator' | null;
+  defaultUserType?: 'student' | 'employer' | 'admin' | null;
 }
 
 const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserType }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [userType, setUserType] = useState<'student' | 'employer' | 'administrator'>(
+  const [userType, setUserType] = useState<'student' | 'employer' | 'admin'>(
     defaultUserType || 'student'
   );
   const { login, isLoading } = useAuth();
@@ -37,7 +34,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
       password: 'shop123',
       name: 'Demo Shop Owner'
     },
-    administrator: {
+    admin: {
       email: 'admin@jobconnect.com',
       password: 'admin123',
       name: 'Demo Administrator'
@@ -55,17 +52,23 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
           description: `Welcome back! Redirecting to your ${userType} dashboard.`,
         });
         onClose();
+      } else {
+        toast({
+          title: "Login Failed",
+          description: "Please check your credentials and user type, then try again.",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
         title: "Login Failed",
-        description: "Please check your credentials and try again.",
+        description: "An error occurred during login. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const handleDemoLogin = (type: 'student' | 'employer' | 'administrator') => {
+  const handleDemoLogin = (type: 'student' | 'employer' | 'admin') => {
     const credentials = demoCredentials[type];
     setEmail(credentials.email);
     setPassword(credentials.password);
@@ -76,17 +79,8 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
     switch (type) {
       case 'student': return <User className="w-4 h-4" />;
       case 'employer': return <Building2 className="w-4 h-4" />;
-      case 'administrator': return <Shield className="w-4 h-4" />;
+      case 'admin': return <Shield className="w-4 h-4" />;
       default: return <User className="w-4 h-4" />;
-    }
-  };
-
-  const getUserTypeColor = (type: string) => {
-    switch (type) {
-      case 'student': return 'bg-blue-50 border-blue-200 text-blue-700';
-      case 'employer': return 'bg-green-50 border-green-200 text-green-700';
-      case 'administrator': return 'bg-purple-50 border-purple-200 text-purple-700';
-      default: return 'bg-gray-50 border-gray-200 text-gray-700';
     }
   };
 
@@ -116,7 +110,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose, defaultUserTyp
               >
                 <div className="flex flex-col items-center space-y-1">
                   {getUserTypeIcon(type)}
-                  <span className="capitalize">{type === 'employer' ? 'Shop' : type}</span>
+                  <span className="capitalize">{type === 'employer' ? 'Shop' : type === 'admin' ? 'Admin' : type}</span>
                 </div>
               </button>
             ))}
